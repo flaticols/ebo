@@ -1,6 +1,7 @@
 package ebo
 
 import (
+	"errors"
 	"math"
 	"math/rand"
 	"time"
@@ -16,55 +17,26 @@ type RetryConfig struct {
 	RandomizeFactor float64       // Randomization factor for jitter (0 to 1)
 }
 
-// Option is a function that configures a RetryConfig
-type Option func(*RetryConfig)
-
-// WithInitialInterval sets the initial retry interval
-func WithInitialInterval(interval time.Duration) Option {
-	return func(c *RetryConfig) {
-		c.InitialInterval = interval
-	}
-}
-
-// WithMaxInterval sets the maximum retry interval
-func WithMaxInterval(interval time.Duration) Option {
-	return func(c *RetryConfig) {
-		c.MaxInterval = interval
-	}
-}
-
-// WithMaxRetries sets the maximum number of retry attempts
-func WithMaxRetries(retries int) Option {
-	return func(c *RetryConfig) {
-		c.MaxRetries = retries
-	}
-}
-
-// WithMultiplier sets the backoff multiplier
-func WithMultiplier(multiplier float64) Option {
-	return func(c *RetryConfig) {
-		c.Multiplier = multiplier
-	}
-}
-
-// WithMaxElapsedTime sets the maximum total time for all retries
-func WithMaxElapsedTime(duration time.Duration) Option {
-	return func(c *RetryConfig) {
-		c.MaxElapsedTime = duration
-	}
-}
-
-// WithRandomizeFactor sets the randomization factor for jitter
-func WithRandomizeFactor(factor float64) Option {
-	return func(c *RetryConfig) {
-		c.RandomizeFactor = factor
-	}
-}
 
 // RetryableFunc is a function that can be retried
 type RetryableFunc func() error
 
-// Retry executes the given function with exponential backoff
+// Retry executes the given function with exponential backoff.
+// It will retry the function until it succeeds, reaches the maximum retry limit,
+// or the maximum elapsed time is exceeded.
+//
+// Example:
+//
+//	err := ebo.Retry(func() error {
+//	    resp, err := http.Get("https://api.example.com/data")
+//	    if err != nil {
+//	        return err
+//	    }
+//	    if resp.StatusCode >= 500 {
+//	        return fmt.Errorf("server error: %d", resp.StatusCode)
+//	    }
+//	    return nil
+//	}, ebo.Tries(5), ebo.Initial(1*time.Second))
 func Retry(fn RetryableFunc, opts ...Option) error {
 	config := &RetryConfig{
 		InitialInterval: 500 * time.Millisecond,
@@ -89,6 +61,12 @@ func Retry(fn RetryableFunc, opts ...Option) error {
 			return nil
 		}
 
+		// Check if the error is permanent and should not be retried
+		var permErr *permanentError
+		if errors.As(err, &permErr) {
+			return permErr.err
+		}
+
 		attempts++
 
 		if config.MaxRetries > 0 && attempts >= config.MaxRetries {
@@ -109,18 +87,44 @@ func Retry(fn RetryableFunc, opts ...Option) error {
 	}
 }
 
-// QuickRetry is a simplified version with sensible defaults
+// QuickRetry is a simplified version with sensible defaults for quick operations.
+// It uses shorter intervals and fewer retries suitable for fast operations.
+//
+// Default configuration:
+// - Initial interval: 100ms
+// - Max interval: 5s
+// - Max retries: 5
+// - Multiplier: 2.0
+// - Jitter: 0.3
+//
+// Example:
+//
+//	err := ebo.QuickRetry(func() error {
+//	    return checkServiceHealth()
+//	})
 func QuickRetry(fn RetryableFunc) error {
 	return Retry(fn,
-		WithInitialInterval(100*time.Millisecond),
-		WithMaxInterval(5*time.Second),
-		WithMaxRetries(5),
-		WithMultiplier(2.0),
-		WithRandomizeFactor(0.3),
+		Initial(100*time.Millisecond),
+		Max(5*time.Second),
+		Tries(5),
+		Multiplier(2.0),
+		Jitter(0.3),
 	)
 }
 
-// RetryWithBackoff is a simple exponential backoff without configuration
+// RetryWithBackoff is a simple exponential backoff without configuration.
+// It provides a basic retry mechanism with fixed exponential backoff.
+//
+// Parameters:
+// - Initial interval: 100ms
+// - Max interval: 10s
+// - Multiplier: 2.0
+//
+// Example:
+//
+//	err := ebo.RetryWithBackoff(func() error {
+//	    return performOperation()
+//	}, 3) // max 3 retries
 func RetryWithBackoff(fn RetryableFunc, maxRetries int) error {
 	backoff := 100 * time.Millisecond
 	maxBackoff := 10 * time.Second

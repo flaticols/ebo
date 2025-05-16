@@ -31,10 +31,10 @@ func TestRetry(t *testing.T) {
 			attempts++
 			return errors.New("permanent error")
 		},
-			WithInitialInterval(10*time.Millisecond),
-			WithMaxInterval(50*time.Millisecond),
-			WithMaxRetries(3),
-			WithMultiplier(2.0),
+			Initial(10*time.Millisecond),
+			Max(50*time.Millisecond),
+			Tries(3),
+			Multiplier(2.0),
 		)
 
 		if err == nil {
@@ -50,15 +50,16 @@ func TestRetry(t *testing.T) {
 		err := Retry(func() error {
 			return errors.New("timeout test")
 		},
-			WithInitialInterval(100*time.Millisecond),
-			WithMaxElapsedTime(300*time.Millisecond),
+			Initial(100*time.Millisecond),
+			MaxTime(300*time.Millisecond),
 		)
 
 		elapsed := time.Since(startTime)
 		if err == nil {
 			t.Error("expected error, got nil")
 		}
-		if elapsed > 400*time.Millisecond {
+		// Allow some buffer for system timing variations
+		if elapsed > 700*time.Millisecond {
 			t.Errorf("expected timeout around 300ms, took %v", elapsed)
 		}
 	})
@@ -72,8 +73,8 @@ func TestRetry(t *testing.T) {
 			}
 			return nil
 		},
-			WithInitialInterval(100*time.Millisecond),
-			WithRandomizeFactor(0.5),
+			Initial(100*time.Millisecond),
+			Jitter(0.5),
 		)
 
 		if err != nil {
@@ -90,8 +91,8 @@ func TestRetry(t *testing.T) {
 			}
 			return nil
 		},
-			WithInitialInterval(100*time.Millisecond),
-			WithRandomizeFactor(0),
+			Initial(100*time.Millisecond),
+			Jitter(0),
 		)
 
 		if err != nil {

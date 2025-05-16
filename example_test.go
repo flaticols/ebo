@@ -17,16 +17,16 @@ func ExampleRetry() {
 			return err
 		}
 		if resp.StatusCode >= 500 {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return fmt.Errorf("server error: %d", resp.StatusCode)
 		}
 		response = resp
 		return nil
 	},
-		WithInitialInterval(1*time.Second),
-		WithMaxInterval(30*time.Second),
-		WithMaxRetries(5),
-		WithRandomizeFactor(0.5),
+		Initial(1*time.Second),
+		Max(30*time.Second),
+		Tries(5),
+		Jitter(0.5),
 	)
 
 	if err != nil {
@@ -34,7 +34,7 @@ func ExampleRetry() {
 		return
 	}
 	
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	// Process response...
 }
 
@@ -44,9 +44,9 @@ func ExampleRetry_withTimeout() {
 		// Your operation here
 		return errors.New("timeout example")
 	},
-		WithInitialInterval(500*time.Millisecond),
-		WithMaxElapsedTime(5*time.Second),
-		WithMaxRetries(0), // No retry limit, only time limit
+		Initial(500*time.Millisecond),
+		MaxTime(5*time.Second),
+		Tries(0), // No retry limit, only time limit
 	)
 	
 	if err != nil {
@@ -60,10 +60,10 @@ func ExampleRetry_customBackoff() {
 		// Your operation here
 		return nil
 	},
-		WithInitialInterval(100*time.Millisecond),
-		WithMaxInterval(10*time.Second),
-		WithMultiplier(3.0), // Triple the interval each time
-		WithRandomizeFactor(0), // No jitter
+		Initial(100*time.Millisecond),
+		Max(10*time.Second),
+		Multiplier(3.0), // Triple the interval each time
+		Jitter(0), // No jitter
 	)
 	
 	if err != nil {
@@ -98,19 +98,19 @@ func ExampleRetryWithBackoff() {
 func ExampleOption() {
 	// Example: Creating reusable option sets
 	fastRetryOptions := []Option{
-		WithInitialInterval(50*time.Millisecond),
-		WithMaxInterval(500*time.Millisecond),
-		WithMaxRetries(3),
-		WithMultiplier(2.0),
+		Initial(50*time.Millisecond),
+		Max(500*time.Millisecond),
+		Tries(3),
+		Multiplier(2.0),
 	}
 	
 	robustRetryOptions := []Option{
-		WithInitialInterval(1*time.Second),
-		WithMaxInterval(1*time.Minute),
-		WithMaxRetries(10),
-		WithMultiplier(2.0),
-		WithRandomizeFactor(0.5),
-		WithMaxElapsedTime(10*time.Minute),
+		Initial(1*time.Second),
+		Max(1*time.Minute),
+		Tries(10),
+		Multiplier(2.0),
+		Jitter(0.5),
+		MaxTime(10*time.Minute),
 	}
 	
 	// Use fast retry for quick operations

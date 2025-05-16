@@ -1,0 +1,31 @@
+version: 2
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - gosec
+
+linters-settings:
+  gosec:
+    excludes:
+      - G404
+
+issues:
+  exclude-rules:
+    # Exclude from examples  
+    - path: examples/
+      linters:
+        - all
+
+    # Exclude from tests
+    - path: _test\.go
+      linters:
+        - gosec
+
+run:
+  timeout: 5m
+  tests: true
+  allow-parallel-runners: true
+  skip-dirs:
+    - examples
