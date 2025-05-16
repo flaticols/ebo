@@ -1,0 +1,102 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get previous tag
+        id: previous_tag
+        run: |
+          previous_tag=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          echo "previous_tag=$previous_tag" >> $GITHUB_OUTPUT
+          echo "Previous tag: $previous_tag"
+
+      - name: Generate Changelog
+        id: changelog
+        uses: TriPSs/conventional-changelog-action@v5
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          skip-version-file: true
+          skip-commit: true
+          skip-tag: true
+          release-count: 0
+          from-tag: ${{ steps.previous_tag.outputs.previous_tag }}
+          to-tag: ${{ github.ref }}
+          preset: 'conventionalcommits'
+          output-file: false
+
+      - name: Parse Changelog
+        id: parse_changelog
+        run: |
+          # Extract changelog content and group by type
+          changelog_content="${{ steps.changelog.outputs.changelog }}"
+          
+          # If changelog is empty, generate a simple commit list
+          if [ -z "$changelog_content" ]; then
+            if [ -n "${{ steps.previous_tag.outputs.previous_tag }}" ]; then
+              commits=$(git log --pretty=format:"* %s" ${{ steps.previous_tag.outputs.previous_tag }}..${{ github.ref }} --no-merges)
+            else
+              commits=$(git log --pretty=format:"* %s" --no-merges)
+            fi
+            
+            # Group commits by conventional commit type
+            features=$(echo "$commits" | grep -E "^\* feat(\(.*\))?:" || true)
+            fixes=$(echo "$commits" | grep -E "^\* fix(\(.*\))?:" || true)
+            docs=$(echo "$commits" | grep -E "^\* docs(\(.*\))?:" || true)
+            style=$(echo "$commits" | grep -E "^\* style(\(.*\))?:" || true)
+            refactor=$(echo "$commits" | grep -E "^\* refactor(\(.*\))?:" || true)
+            test=$(echo "$commits" | grep -E "^\* test(\(.*\))?:" || true)
+            chore=$(echo "$commits" | grep -E "^\* chore(\(.*\))?:" || true)
+            other=$(echo "$commits" | grep -vE "^\* (feat|fix|docs|style|refactor|test|chore)(\(.*\))?:" || true)
+            
+            changelog=""
+            
+            [ -n "$features" ] && changelog+="### Features\n\n$features\n\n"
+            [ -n "$fixes" ] && changelog+="### Bug Fixes\n\n$fixes\n\n"
+            [ -n "$docs" ] && changelog+="### Documentation\n\n$docs\n\n"
+            [ -n "$style" ] && changelog+="### Styles\n\n$style\n\n"
+            [ -n "$refactor" ] && changelog+="### Refactors\n\n$refactor\n\n"
+            [ -n "$test" ] && changelog+="### Tests\n\n$test\n\n"
+            [ -n "$chore" ] && changelog+="### Chores\n\n$chore\n\n"
+            [ -n "$other" ] && changelog+="### Other Changes\n\n$other\n\n"
+            
+            [ -z "$changelog" ] && changelog="No changes since last release."
+            
+            changelog_content="$changelog"
+          fi
+          
+          # Save to output
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$changelog_content" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            ## What's Changed
+            
+            ${{ steps.parse_changelog.outputs.changelog }}
+            
+            **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.previous_tag.outputs.previous_tag }}...${{ github.ref }}
+          draft: false
+          prerelease: false
