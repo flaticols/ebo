@@ -33,6 +33,7 @@ func TestAttempts(t *testing.T) {
 		for attempt := range Attempts(
 			Tries(3),
 			Initial(10*time.Millisecond),
+			Multiplier(1.0), // No multiplication for predictable testing
 			Jitter(0), // No jitter for predictable delays
 		) {
 			attempts++

@@ -7,6 +7,16 @@ import (
 	"time"
 )
 
+// Default configuration values
+const (
+	defaultInitialInterval = 500 * time.Millisecond
+	defaultMaxInterval     = 30 * time.Second
+	defaultMaxRetries      = 10
+	defaultMultiplier      = 2.0
+	defaultMaxElapsedTime  = 5 * time.Minute
+	defaultRandomizeFactor = 0.5
+)
+
 // RetryConfig holds the configuration for retry with exponential backoff
 type RetryConfig struct {
 	InitialInterval time.Duration // Initial retry interval
@@ -17,6 +27,17 @@ type RetryConfig struct {
 	RandomizeFactor float64       // Randomization factor for jitter (0 to 1)
 }
 
+// getNextInterval calculates the next retry interval with optional jitter
+func getNextInterval(currentInterval time.Duration, randomizeFactor float64) time.Duration {
+	if randomizeFactor == 0 {
+		return currentInterval
+	}
+
+	delta := randomizeFactor * float64(currentInterval)
+	minInterval := float64(currentInterval) - delta
+	maxInterval := float64(currentInterval) + delta
+	return time.Duration(minInterval + (rand.Float64() * (maxInterval - minInterval)))
+}
 
 // RetryableFunc is a function that can be retried
 type RetryableFunc func() error
@@ -39,12 +60,12 @@ type RetryableFunc func() error
 //	}, ebo.Tries(5), ebo.Initial(1*time.Second))
 func Retry(fn RetryableFunc, opts ...Option) error {
 	config := &RetryConfig{
-		InitialInterval: 500 * time.Millisecond,
-		MaxInterval:     30 * time.Second,
-		MaxRetries:      10,
-		Multiplier:      2.0,
-		MaxElapsedTime:  5 * time.Minute,
-		RandomizeFactor: 0.5,
+		InitialInterval: defaultInitialInterval,
+		MaxInterval:     defaultMaxInterval,
+		MaxRetries:      defaultMaxRetries,
+		Multiplier:      defaultMultiplier,
+		MaxElapsedTime:  defaultMaxElapsedTime,
+		RandomizeFactor: defaultRandomizeFactor,
 	}
 
 	for _, opt := range opts {
