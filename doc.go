@@ -43,7 +43,7 @@
 //   - Retry with logging
 //   - HTTP client integration
 //   - Permanent error handling
-//   - Iterator pattern for stateful retries
+//   - Iterator pattern for stateful retries (using Go 1.23+ iter package)
 //
 // For more examples and documentation, visit https://github.com/flaticols/ebo
 package ebo

@@ -3,6 +3,7 @@ package ebo
 import (
 	"context"
 	"errors"
+	"iter"
 	"time"
 )
 
@@ -28,69 +29,73 @@ type Attempt struct {
 //	    }
 //	    log.Printf("Attempt %d failed", attempt.Number)
 //	}
-func Attempts(opts ...Option) func(func(*Attempt) bool) {
+func Attempts(opts ...Option) iter.Seq[*Attempt] {
 	config := &RetryConfig{
-		InitialInterval: 500 * time.Millisecond,
-		MaxInterval:     30 * time.Second,
-		MaxRetries:      10,
-		Multiplier:      2.0,
-		MaxElapsedTime:  5 * time.Minute,
-		RandomizeFactor: 0.5,
+		InitialInterval: defaultInitialInterval,
+		MaxInterval:     defaultMaxInterval,
+		MaxRetries:      defaultMaxRetries,
+		Multiplier:      defaultMultiplier,
+		MaxElapsedTime:  defaultMaxElapsedTime,
+		RandomizeFactor: defaultRandomizeFactor,
 	}
-
+	
 	for _, opt := range opts {
 		opt(config)
 	}
-
+	
 	return func(yield func(*Attempt) bool) {
 		startTime := time.Now()
-		attempts := 0
-		var currentDelay time.Duration
-		nextInterval := config.InitialInterval
-		var lastError error
-
-		for {
-			attempts++
-			elapsed := time.Since(startTime)
-
-			// Check stopping conditions
-			if attempts > 1 { // After first attempt
-				if config.MaxRetries > 0 && attempts > config.MaxRetries {
-					return
-				}
-				if config.MaxElapsedTime > 0 && elapsed >= config.MaxElapsedTime {
-					return
-				}
+		currentInterval := config.InitialInterval
+		elapsed := time.Duration(0)
+		
+		for i := 0; ; i++ {
+			// Check max retries
+			if config.MaxRetries > 0 && i >= config.MaxRetries {
+				return
 			}
-
+			
+			// Check max elapsed time
+			if config.MaxElapsedTime > 0 && elapsed > config.MaxElapsedTime {
+				return
+			}
+			
+			// Create attempt with current delay
 			attempt := &Attempt{
-				Number:    attempts,
-				Delay:     currentDelay,
-				Elapsed:   elapsed,
-				LastError: lastError,
-				Context:   context.Background(),
+				Number:  i + 1,
+				Delay:   currentInterval,
+				Elapsed: elapsed,
+				Context: context.Background(),
 			}
-
-			// Wait before attempt (except first one)
-			if currentDelay > 0 {
-				time.Sleep(currentDelay)
+			
+			// For the first attempt, set delay to 0
+			if i == 0 {
+				attempt.Delay = 0
 			}
-
-			// Yield control to the caller
+			
+			// Wait before yielding (except for first attempt)
+			if i > 0 {
+				time.Sleep(currentInterval)
+				elapsed = time.Since(startTime)
+			}
+			
+			// Yield attempt
 			if !yield(attempt) {
 				return
 			}
-
-			// Calculate delay for next attempt
-			currentDelay = nextInterval
 			
-			// Calculate next interval with jitter
-			nextInterval = min(time.Duration(float64(nextInterval)*config.Multiplier), config.MaxInterval)
+			// Update interval for next iteration
+			if config.Multiplier > 0 {
+				currentInterval = time.Duration(float64(currentInterval) * config.Multiplier)
+			}
+			
+			// Apply max interval cap
+			if currentInterval > config.MaxInterval {
+				currentInterval = config.MaxInterval
+			}
+			
+			// Apply jitter if configured  
 			if config.RandomizeFactor > 0 {
-				delta := config.RandomizeFactor * float64(nextInterval)
-				minInterval := float64(nextInterval) - delta
-				maxInterval := float64(nextInterval) + delta
-				nextInterval = time.Duration(minInterval + (randomFloat() * (maxInterval - minInterval)))
+				currentInterval = getNextInterval(currentInterval, config.RandomizeFactor)
 			}
 		}
 	}
@@ -109,21 +114,84 @@ func Attempts(opts ...Option) func(func(*Attempt) bool) {
 //	        return nil
 //	    }
 //	}
-func AttemptsWithContext(ctx context.Context, opts ...Option) func(func(*Attempt) bool) {
-	baseIterator := Attempts(opts...)
+func AttemptsWithContext(ctx context.Context, opts ...Option) iter.Seq[*Attempt] {
+	config := &RetryConfig{
+		InitialInterval: defaultInitialInterval,
+		MaxInterval:     defaultMaxInterval,
+		MaxRetries:      defaultMaxRetries,
+		Multiplier:      defaultMultiplier,
+		MaxElapsedTime:  defaultMaxElapsedTime,
+		RandomizeFactor: defaultRandomizeFactor,
+	}
+	
+	for _, opt := range opts {
+		opt(config)
+	}
 	
 	return func(yield func(*Attempt) bool) {
-		baseIterator(func(attempt *Attempt) bool {
-			// Check context cancellation
-			select {
-			case <-ctx.Done():
-				attempt.LastError = ctx.Err()
-				return false
-			default:
-				attempt.Context = ctx
-				return yield(attempt)
+		startTime := time.Now()
+		currentInterval := config.InitialInterval
+		elapsed := time.Duration(0)
+		
+		for i := 0; ; i++ {
+			// Check context
+			if ctx.Err() != nil {
+				return
 			}
-		})
+			
+			// Check max retries
+			if config.MaxRetries > 0 && i >= config.MaxRetries {
+				return
+			}
+			
+			// Check max elapsed time
+			if config.MaxElapsedTime > 0 && elapsed > config.MaxElapsedTime {
+				return
+			}
+			
+			// Create attempt with current delay
+			attempt := &Attempt{
+				Number:  i + 1,
+				Delay:   currentInterval,
+				Elapsed: elapsed,
+				Context: ctx,
+			}
+			
+			// For the first attempt, set delay to 0
+			if i == 0 {
+				attempt.Delay = 0
+			}
+			
+			// Wait before yielding (except for first attempt)
+			if i > 0 {
+				select {
+				case <-time.After(currentInterval):
+					elapsed = time.Since(startTime)
+				case <-ctx.Done():
+					return
+				}
+			}
+			
+			// Yield attempt
+			if !yield(attempt) {
+				return
+			}
+			
+			// Update interval for next iteration
+			if config.Multiplier > 0 {
+				currentInterval = time.Duration(float64(currentInterval) * config.Multiplier)
+			}
+			
+			// Apply max interval cap
+			if currentInterval > config.MaxInterval {
+				currentInterval = config.MaxInterval
+			}
+			
+			// Apply jitter if configured  
+			if config.RandomizeFactor > 0 {
+				currentInterval = getNextInterval(currentInterval, config.RandomizeFactor)
+			}
+		}
 	}
 }
 
@@ -136,25 +204,27 @@ func AttemptsWithContext(ctx context.Context, opts ...Option) func(func(*Attempt
 //	    return apiCall()
 //	}, ebo.Tries(5))
 func DoWithAttempts(fn func(*Attempt) error, opts ...Option) error {
-	var finalErr error
+	var lastErr error
 	
 	for attempt := range Attempts(opts...) {
-		err := fn(attempt)
-		if err == nil {
+		if err := fn(attempt); err == nil {
 			return nil
+		} else {
+			lastErr = err
+			
+			// Check if it's a permanent error
+			var permanent *permanentError
+			if errors.As(err, &permanent) {
+				return permanent.err
+			}
+			attempt.LastError = err
 		}
-		
-		// Check for permanent errors
-		var permErr *permanentError
-		if errors.As(err, &permErr) {
-			return permErr.err
-		}
-		
-		finalErr = err
-		attempt.LastError = err
 	}
 	
-	return finalErr
+	if lastErr != nil {
+		return lastErr
+	}
+	return errors.New("all retry attempts failed")
 }
 
 // DoWithAttemptsContext provides context-aware iteration.
@@ -167,28 +237,29 @@ func DoWithAttempts(fn func(*Attempt) error, opts ...Option) error {
 //	    return apiCall(attempt.Context)
 //	}, ebo.Tries(3))
 func DoWithAttemptsContext(ctx context.Context, fn func(*Attempt) error, opts ...Option) error {
-	var finalErr error
+	var lastErr error
 	
 	for attempt := range AttemptsWithContext(ctx, opts...) {
-		err := fn(attempt)
-		if err == nil {
+		if err := fn(attempt); err == nil {
 			return nil
+		} else {
+			lastErr = err
+			
+			// Check if it's a permanent error
+			var permanent *permanentError
+			if errors.As(err, &permanent) {
+				return permanent.err
+			}
+			attempt.LastError = err
 		}
-		
-		// Check for permanent errors
-		var permErr *permanentError
-		if errors.As(err, &permErr) {
-			return permErr.err
-		}
-		
-		finalErr = err
-		attempt.LastError = err
 	}
 	
-	return finalErr
-}
-
-// randomFloat returns a random float64 in [0.0, 1.0)
-func randomFloat() float64 {
-	return float64(time.Now().UnixNano()%1000000) / 1000000.0
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	
+	if lastErr != nil {
+		return lastErr
+	}
+	return errors.New("all retry attempts failed")
 }
