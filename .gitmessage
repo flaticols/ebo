@@ -1,0 +1,27 @@
+# Conventional Commits Message Template
+# Type: feat|fix|docs|style|refactor|test|chore
+# Scope: optional area of change
+# Subject: imperative tense description
+
+# Example: feat(retry): add circuit breaker support
+
+# <type>(<scope>): <subject>
+
+# <body>
+
+# <footer>
+
+# Type options:
+# feat:     A new feature
+# fix:      A bug fix
+# docs:     Documentation only changes
+# style:    Changes that do not affect the meaning of the code
+# refactor: A code change that neither fixes a bug nor adds a feature
+# test:     Adding missing tests or correcting existing tests
+# chore:    Changes to the build process or auxiliary tools
+
+# The body should include the motivation for the change and contrast
+# this with previous behavior.
+
+# The footer should contain any BREAKING CHANGE info or reference
+# to issues closed by this commit.
