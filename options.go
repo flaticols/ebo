@@ -279,4 +279,3 @@ func Timeout(d time.Duration) Option {
 		c.MaxRetries = 0 // No retry limit, only time
 	}
 }
-

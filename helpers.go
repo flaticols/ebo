@@ -14,7 +14,7 @@ import (
 //
 //	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 //	defer cancel()
-//	
+//
 //	err := ebo.RetryWithContext(ctx, func() error {
 //	    return performLongOperation()
 //	}, ebo.Tries(10), ebo.Initial(1*time.Second))
@@ -35,7 +35,7 @@ func RetryWithContext(ctx context.Context, fn func() error, opts ...Option) erro
 // Example:
 //
 //	logger := log.New(os.Stdout, "[RETRY] ", log.LstdFlags)
-//	
+//
 //	err := ebo.RetryWithLogging(func() error {
 //	    return connectToDatabase()
 //	}, logger, ebo.Tries(5), ebo.Initial(1*time.Second))
@@ -66,7 +66,7 @@ func RetryWithLogging(fn func() error, logger *log.Logger, opts ...Option) error
 //	    }
 //	    return true
 //	}
-//	
+//
 //	err := ebo.RetryWithCondition(func() error {
 //	    return callAPI()
 //	}, isRetryable, ebo.Tries(3))
@@ -114,16 +114,16 @@ func (t *HTTPRetryTransport) RoundTrip(req *http.Request) (*http.Response, error
 			return err
 		}
 		resp = r
-		
+
 		// Check if the status code is retryable
 		if r.StatusCode >= 500 || r.StatusCode == 429 {
 			_ = r.Body.Close()
 			return fmt.Errorf("retryable status: %d", r.StatusCode)
 		}
-		
+
 		return nil
 	}, t.Options...)
-	
+
 	return resp, err
 }
 
@@ -133,7 +133,7 @@ func (t *HTTPRetryTransport) RoundTrip(req *http.Request) (*http.Response, error
 // Example:
 //
 //	client := ebo.NewHTTPClient(ebo.HTTPStatus())
-//	
+//
 //	resp, err := client.Get("https://api.example.com/data")
 //	if err != nil {
 //	    log.Fatal(err)
@@ -158,7 +158,7 @@ type RetryableHTTPFunc func(*http.Request) (*http.Response, error)
 //
 //	req, _ := http.NewRequest("POST", "https://api.example.com/data", body)
 //	req.Header.Set("Content-Type", "application/json")
-//	
+//
 //	resp, err := ebo.HTTPDo(req, nil, ebo.API())
 //	if err != nil {
 //	    log.Fatal(err)
@@ -168,23 +168,23 @@ func HTTPDo(req *http.Request, client *http.Client, opts ...Option) (*http.Respo
 	if client == nil {
 		client = http.DefaultClient
 	}
-	
+
 	var resp *http.Response
 	err := Retry(func() error {
 		r, err := client.Do(req)
 		if err != nil {
 			return err
 		}
-		
+
 		// Check if the status code is retryable
 		if r.StatusCode >= 500 || r.StatusCode == 429 {
 			_ = r.Body.Close()
 			return fmt.Errorf("retryable status: %d", r.StatusCode)
 		}
-		
+
 		resp = r
 		return nil
 	}, opts...)
-	
+
 	return resp, err
 }

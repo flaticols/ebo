@@ -156,12 +156,12 @@ func TestUsageWithRetry(t *testing.T) {
 
 func TestCombiningOptions(t *testing.T) {
 	config := &RetryConfig{}
-	
+
 	// Apply preset then override
 	Database()(config)
 	Tries(50)(config)
 	NoJitter()(config)
-	
+
 	if config.InitialInterval != 1*time.Second {
 		t.Errorf("expected 1s from Database preset, got %v", config.InitialInterval)
 	}

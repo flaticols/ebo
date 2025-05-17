@@ -143,6 +143,60 @@ req, _ := http.NewRequest("GET", "https://api.example.com/data", nil)
 resp, err := ebo.HTTPDo(req, http.DefaultClient, ebo.API())
 ```
 
+### HTTP Middleware
+
+EBO provides HTTP middleware that automatically retries requests based on response codes.
+
+```go
+// Create a handler
+handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    // Your API logic here
+})
+
+// Wrap with retry middleware (retries on 5xx and 429 by default)
+retryHandler := ebo.NewRetryMiddleware(handler, ebo.DefaultResponseChecker,
+    ebo.Initial(500*time.Millisecond),
+    ebo.Tries(5),
+    ebo.Jitter(0.3),
+)
+
+// Use with standard HTTP server
+http.ListenAndServe(":8080", retryHandler)
+
+// Or use the middleware function for router compatibility
+middleware := ebo.Middleware(ebo.DefaultResponseChecker, ebo.API())
+http.Handle("/api/", middleware(handler))
+
+// Custom response checker
+customChecker := func(resp *http.Response) bool {
+    return resp.StatusCode >= 500 || resp.StatusCode == 404
+}
+customMiddleware := ebo.Middleware(customChecker, ebo.Quick())
+```
+
+### Router Integration
+
+EBO's middleware works seamlessly with popular Go routers:
+
+```go
+// Chi router
+import "github.com/go-chi/chi/v5"
+
+r := chi.NewRouter()
+r.Use(ebo.Middleware(ebo.DefaultResponseChecker, ebo.API()))
+r.Get("/api/users", usersHandler)
+
+// RouteGroup
+import "github.com/go-pkgz/routegroup"
+
+router := routegroup.New(http.NewServeMux())
+apiGroup := router.Group()
+apiGroup.Use(ebo.Middleware(ebo.DefaultResponseChecker, ebo.Quick()))
+apiGroup.HandleFunc("GET /api/data", dataHandler)
+```
+
+See [examples/router-integration](examples/router-integration) for complete examples with chi and routegroup.
+
 ## Iterator Pattern (Go 1.23+)
 
 EBO now supports the new Go iterator pattern for more flexible and elegant retry loops.

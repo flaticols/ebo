@@ -15,15 +15,15 @@ func main() {
 	// Pattern 1: Custom backoff with iterator
 	fmt.Println("=== Custom Backoff Pattern ===")
 	customBackoff()
-	
+
 	// Pattern 2: Circuit breaker pattern
 	fmt.Println("\n=== Circuit Breaker Pattern ===")
 	circuitBreaker()
-	
+
 	// Pattern 3: Hedged requests (multiple concurrent attempts)
 	fmt.Println("\n=== Hedged Requests Pattern ===")
 	hedgedRequests()
-	
+
 	// Pattern 4: Progressive retry with fallbacks
 	fmt.Println("\n=== Progressive Retry with Fallbacks ===")
 	progressiveRetry()
@@ -37,15 +37,15 @@ func customBackoff() {
 		1 * time.Second,
 		5 * time.Second,
 	}
-	
+
 	attempt := 0
 	for a := range ebo.Attempts(ebo.Tries(len(backoffSequence))) {
 		if attempt < len(backoffSequence) && attempt > 0 {
 			time.Sleep(backoffSequence[attempt-1])
 		}
-		
+
 		fmt.Printf("Custom backoff attempt %d\n", a.Number)
-		
+
 		if a.Number >= 3 {
 			fmt.Println("Success with custom backoff!")
 			break
@@ -71,32 +71,32 @@ func (cb *CircuitBreaker) Call(fn func() error) error {
 		// Try half-open state
 		cb.halfOpen = true
 	}
-	
+
 	for attempt := range ebo.Attempts(
 		ebo.Tries(3),
 		ebo.Initial(100*time.Millisecond),
 	) {
 		err := fn()
-		
+
 		if err == nil {
 			// Success - reset circuit
 			cb.failures = 0
 			cb.halfOpen = false
 			return nil
 		}
-		
+
 		// Failure
 		cb.failures++
 		cb.lastFailure = time.Now()
-		
+
 		if cb.halfOpen {
 			// Failed in half-open state - open the circuit again
 			return fmt.Errorf("circuit breaker opened after half-open failure: %w", err)
 		}
-		
+
 		fmt.Printf("Circuit breaker attempt %d failed\n", attempt.Number)
 	}
-	
+
 	return errors.New("all attempts failed")
 }
 
@@ -105,7 +105,7 @@ func circuitBreaker() {
 		failureThreshold: 3,
 		resetTimeout:     5 * time.Second,
 	}
-	
+
 	// Simulate some failures
 	failCount := 0
 	operation := func() error {
@@ -115,7 +115,7 @@ func circuitBreaker() {
 		}
 		return nil
 	}
-	
+
 	// Try multiple times
 	for i := 0; i < 5; i++ {
 		err := cb.Call(operation)
@@ -132,10 +132,10 @@ func circuitBreaker() {
 func hedgedRequests() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	results := make(chan string, 3)
 	errors := make(chan error, 3)
-	
+
 	// Start multiple requests with different delays
 	strategies := []struct {
 		name  string
@@ -145,12 +145,14 @@ func hedgedRequests() {
 		{"backup-1", 500 * time.Millisecond},
 		{"backup-2", 1 * time.Second},
 	}
-	
+
 	for _, strategy := range strategies {
-		go func(s struct{ name string; delay time.Duration }) {
+		go func(s struct {
+			name  string
+			delay time.Duration
+		}) {
 			// Wait before starting this attempt
 			time.Sleep(s.delay)
-			
 			for attempt := range ebo.AttemptsWithContext(ctx,
 				ebo.Tries(2),
 				ebo.Initial(100*time.Millisecond),
@@ -164,7 +166,7 @@ func hedgedRequests() {
 			errors <- fmt.Errorf("%s failed all attempts", s.name)
 		}(strategy)
 	}
-	
+
 	// Wait for first success or all failures
 	for i := 0; i < len(strategies); i++ {
 		select {
@@ -184,15 +186,15 @@ func hedgedRequests() {
 func progressiveRetry() {
 	endpoints := []string{
 		"https://primary.example.com",
-		"https://secondary.example.com", 
+		"https://secondary.example.com",
 		"https://fallback.example.com",
 	}
-	
+
 	var lastError error
-	
+
 	for i, endpoint := range endpoints {
 		fmt.Printf("Trying endpoint %d: %s\n", i+1, endpoint)
-		
+
 		success := false
 		for attempt := range ebo.Attempts(
 			ebo.Tries(2),
@@ -205,18 +207,18 @@ func progressiveRetry() {
 				success = true
 				break
 			}
-			
+
 			fmt.Printf("  Attempt %d: Failed\n", attempt.Number)
 			lastError = fmt.Errorf("failed to connect to %s", endpoint)
 		}
-		
+
 		if success {
 			fmt.Println("Progressive retry succeeded!")
 			return
 		}
-		
+
 		fmt.Printf("All attempts failed for %s, trying next endpoint...\n", endpoint)
 	}
-	
+
 	log.Fatalf("All endpoints failed: %v", lastError)
 }

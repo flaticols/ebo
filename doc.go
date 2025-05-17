@@ -27,13 +27,13 @@
 //
 //	// Quick retries for fast operations
 //	err := ebo.Retry(checkCache, ebo.Quick())
-//	
+//
 //	// API calls with moderate retry
 //	err := ebo.Retry(callAPI, ebo.API())
-//	
+//
 //	// Database operations with longer timeouts
 //	err := ebo.Retry(connectDB, ebo.Database())
-//	
+//
 //	// HTTP requests with status code awareness
 //	client := ebo.NewHTTPClient(ebo.HTTPStatus())
 //

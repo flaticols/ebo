@@ -15,7 +15,7 @@ func ExampleRetry() {
 		fmt.Println("Attempting operation...")
 		return errors.New("temporary failure")
 	}, ebo.Tries(1))
-	
+
 	if err != nil {
 		fmt.Printf("Operation failed: %v\n", err)
 	}
@@ -33,7 +33,7 @@ func ExampleQuickRetry() {
 		}
 		return nil
 	})
-	
+
 	if err == nil {
 		fmt.Println("Success after", attempts, "attempts")
 	}
@@ -44,12 +44,12 @@ func ExampleQuickRetry() {
 func ExampleRetryWithContext() {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	
+
 	err := ebo.RetryWithContext(ctx, func() error {
 		fmt.Println("Trying with context...")
 		return nil
 	}, ebo.Initial(100*time.Millisecond))
-	
+
 	if err == nil {
 		fmt.Println("Success!")
 	}
@@ -84,12 +84,12 @@ func ExampleInitial() {
 	// Show configuration with Initial option
 	err := ebo.Retry(func() error {
 		return nil
-	}, 
+	},
 		ebo.Initial(1*time.Second),
 		ebo.Tries(3),
 		ebo.NoJitter(),
 	)
-	
+
 	if err == nil {
 		fmt.Println("Configured successfully")
 	}
@@ -103,7 +103,7 @@ func ExampleAPI() {
 		fmt.Println("Using API preset")
 		return nil
 	}, ebo.API())
-	
+
 	if err == nil {
 		fmt.Println("API preset works")
 	}
@@ -114,7 +114,7 @@ func ExampleAPI() {
 
 func ExampleRetryWithLogging() {
 	logger := log.New(log.Writer(), "[RETRY] ", 0)
-	
+
 	attempts := 0
 	err := ebo.RetryWithLogging(func() error {
 		attempts++
@@ -123,7 +123,7 @@ func ExampleRetryWithLogging() {
 		}
 		return nil
 	}, logger, ebo.Tries(3), ebo.Initial(10*time.Millisecond))
-	
+
 	if err == nil {
 		fmt.Println("Success with logging")
 	}
