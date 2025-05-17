@@ -68,14 +68,38 @@ jobs:
             
             changelog=""
             
-            [ -n "$features" ] && changelog+="### Features\n\n$features\n\n"
-            [ -n "$fixes" ] && changelog+="### Bug Fixes\n\n$fixes\n\n"
-            [ -n "$docs" ] && changelog+="### Documentation\n\n$docs\n\n"
-            [ -n "$style" ] && changelog+="### Styles\n\n$style\n\n"
-            [ -n "$refactor" ] && changelog+="### Refactors\n\n$refactor\n\n"
-            [ -n "$test" ] && changelog+="### Tests\n\n$test\n\n"
-            [ -n "$chore" ] && changelog+="### Chores\n\n$chore\n\n"
-            [ -n "$other" ] && changelog+="### Other Changes\n\n$other\n\n"
+            if [ -n "$features" ]; then
+              changelog+="### Features"$'\n'$'\n'
+              changelog+="$features"$'\n'$'\n'
+            fi
+            if [ -n "$fixes" ]; then
+              changelog+="### Bug Fixes"$'\n'$'\n'
+              changelog+="$fixes"$'\n'$'\n'
+            fi
+            if [ -n "$docs" ]; then
+              changelog+="### Documentation"$'\n'$'\n'
+              changelog+="$docs"$'\n'$'\n'
+            fi
+            if [ -n "$style" ]; then
+              changelog+="### Styles"$'\n'$'\n'
+              changelog+="$style"$'\n'$'\n'
+            fi
+            if [ -n "$refactor" ]; then
+              changelog+="### Refactors"$'\n'$'\n'
+              changelog+="$refactor"$'\n'$'\n'
+            fi
+            if [ -n "$test" ]; then
+              changelog+="### Tests"$'\n'$'\n'
+              changelog+="$test"$'\n'$'\n'
+            fi
+            if [ -n "$chore" ]; then
+              changelog+="### Chores"$'\n'$'\n'
+              changelog+="$chore"$'\n'$'\n'
+            fi
+            if [ -n "$other" ]; then
+              changelog+="### Other Changes"$'\n'$'\n'
+              changelog+="$other"$'\n'$'\n'
+            fi
             
             [ -z "$changelog" ] && changelog="No changes since last release."
             
