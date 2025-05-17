@@ -9,12 +9,12 @@ Simple, fast exponential backoff retry for Go.
 
 ## Features
 
-- 🚀 Zero dependencies
-- ⚡ Fast and lightweight
-- 🎯 Functional options for flexible configuration
-- 🌊 Jitter support to prevent thundering herd
-- ⏱️ Timeout and retry limit controls
-- 🧠 Sensible defaults
+- Zero dependencies
+- Fast and lightweight
+- Functional options for flexible configuration
+- Jitter support to prevent thundering herd
+- Timeout and retry limit controls
+- Sensible defaults
 
 ## Installation
 
