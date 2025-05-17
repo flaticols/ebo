@@ -174,6 +174,29 @@ customChecker := func(resp *http.Response) bool {
 customMiddleware := ebo.Middleware(customChecker, ebo.Quick())
 ```
 
+### Router Integration
+
+EBO's middleware works seamlessly with popular Go routers:
+
+```go
+// Chi router
+import "github.com/go-chi/chi/v5"
+
+r := chi.NewRouter()
+r.Use(ebo.Middleware(ebo.DefaultResponseChecker, ebo.API()))
+r.Get("/api/users", usersHandler)
+
+// RouteGroup
+import "github.com/go-pkgz/routegroup"
+
+router := routegroup.New(http.NewServeMux())
+apiGroup := router.Group()
+apiGroup.Use(ebo.Middleware(ebo.DefaultResponseChecker, ebo.Quick()))
+apiGroup.HandleFunc("GET /api/data", dataHandler)
+```
+
+See [examples/router-integration](examples/router-integration) for complete examples with chi and routegroup.
+
 ## Iterator Pattern (Go 1.23+)
 
 EBO now supports the new Go iterator pattern for more flexible and elegant retry loops.
