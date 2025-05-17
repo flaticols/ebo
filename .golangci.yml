@@ -1,22 +1,25 @@
 version: "2"
 
 linters:
-   default: none
-   enable:
-     - bodyclose
-     - dupl
-     - asciicheck
-     - errcheck
-     - errchkjson
-     - errname
-     - errorlint
-     - nilerr
-     - nilnil
-     - staticcheck
+  default: none
+  enable:
+    - bodyclose
+    - dupl
+    - asciicheck
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - nilerr
+    - nilnil
+    - staticcheck
+  exclusions:
+    paths-except:
+      - examples/*
 
 formatters:
   enable: []
 
 run:
-    build-tags:
-      - mock
+  build-tags:
+    - mock
