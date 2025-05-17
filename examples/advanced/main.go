@@ -151,17 +151,20 @@ func hedgedRequests() {
 			name  string
 			delay time.Duration
 		}) {
-		// Wait before starting this attempt
-		time.Sleep(s.delay); for attempt := range ebo.AttemptsWithContext(ctx,
-			ebo.Tries(2),
-			ebo.Initial(100*time.Millisecond),
-		) {
-			// Simulate work with 50% failure rate
-			if time.Now().UnixNano()%2 == 0 {
-				results <- fmt.Sprintf("%s succeeded on attempt %d", s.name, attempt.Number)
-				return
+			// Wait before starting this attempt
+			time.Sleep(s.delay)
+			for attempt := range ebo.AttemptsWithContext(ctx,
+				ebo.Tries(2),
+				ebo.Initial(100*time.Millisecond),
+			) {
+				// Simulate work with 50% failure rate
+				if time.Now().UnixNano()%2 == 0 {
+					results <- fmt.Sprintf("%s succeeded on attempt %d", s.name, attempt.Number)
+					return
+				}
 			}
-		}; errors <- fmt.Errorf("%s failed all attempts", s.name) }(strategy)
+			errors <- fmt.Errorf("%s failed all attempts", s.name)
+		}(strategy)
 	}
 
 	// Wait for first success or all failures

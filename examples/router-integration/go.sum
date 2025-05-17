@@ -1,0 +1,4 @@
+github.com/go-chi/chi/v5 v5.0.11 h1:BnpYbFZ3T3S1WMpD79r7R5ThWX40TaFB7L31Y8xqSwA=
+github.com/go-chi/chi/v5 v5.0.11/go.mod h1:DslCQbL2OYiznFReuXYUmQ2hGd1aDpCnlMNITLSKoi8=
+github.com/go-pkgz/routegroup v1.1.1 h1:Dm5IBiEmUbQT+3rliBimhX0SifnZp/uRF/WOu3XPmms=
+github.com/go-pkgz/routegroup v1.1.1/go.mod h1:kDDPDRLRiRY1vnENrZJw1jQAzQX7fvsbsHGRQFNQfKc=

@@ -46,7 +46,12 @@ func (m *RetryMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		m.next.ServeHTTP(recorder, r)
 
 		// Check if we should retry
-		if m.checker(recorder.Result()) {
+		result := recorder.Result()
+		shouldRetry := m.checker(result)
+		if result.Body != nil {
+			_ = result.Body.Close() // Close the body as required by bodyclose linter
+		}
+		if shouldRetry {
 			return fmt.Errorf("retryable status: %d", recorder.Code)
 		}
 
@@ -130,6 +135,6 @@ func (r *responseRecorder) writeTo(w http.ResponseWriter) {
 
 	// Write body
 	if len(r.Body) > 0 {
-		w.Write(r.Body)
+		_, _ = w.Write(r.Body)
 	}
 }

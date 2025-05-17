@@ -15,7 +15,7 @@ func TestRetryMiddleware(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			atomic.AddInt32(&attempts, 1)
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("success"))
+			_, _ = w.Write([]byte("success"))
 		})
 
 		middleware := NewRetryMiddleware(handler, DefaultResponseChecker, Initial(50*time.Millisecond))
@@ -42,10 +42,10 @@ func TestRetryMiddleware(t *testing.T) {
 			current := atomic.AddInt32(&attempts, 1)
 			if current < 3 {
 				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("error"))
+				_, _ = w.Write([]byte("error"))
 			} else {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("success"))
+				_, _ = w.Write([]byte("success"))
 			}
 		})
 
@@ -75,10 +75,10 @@ func TestRetryMiddleware(t *testing.T) {
 			current := atomic.AddInt32(&attempts, 1)
 			if current < 2 {
 				w.WriteHeader(http.StatusTooManyRequests)
-				w.Write([]byte("rate limited"))
+				_, _ = w.Write([]byte("rate limited"))
 			} else {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("success"))
+				_, _ = w.Write([]byte("success"))
 			}
 		})
 
@@ -105,10 +105,10 @@ func TestRetryMiddleware(t *testing.T) {
 			current := atomic.AddInt32(&attempts, 1)
 			if current < 2 {
 				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte("bad request"))
+				_, _ = w.Write([]byte("bad request"))
 			} else {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("success"))
+				_, _ = w.Write([]byte("success"))
 			}
 		})
 
@@ -139,7 +139,7 @@ func TestRetryMiddleware(t *testing.T) {
 			w.Header().Set("X-Custom-Header", "test-value")
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{"status":"ok"}`))
+			_, _ = w.Write([]byte(`{"status":"ok"}`))
 		})
 
 		middleware := NewRetryMiddleware(handler, DefaultResponseChecker)
@@ -195,7 +195,7 @@ func TestResponseRecorder(t *testing.T) {
 
 		recorder.Header().Set("Content-Type", "text/plain")
 		recorder.WriteHeader(http.StatusCreated)
-		recorder.Write([]byte("test body"))
+		_, _ = recorder.Write([]byte("test body"))
 
 		if recorder.Code != http.StatusCreated {
 			t.Errorf("expected status 201, got %d", recorder.Code)
@@ -210,7 +210,7 @@ func TestResponseRecorder(t *testing.T) {
 
 	t.Run("default status code", func(t *testing.T) {
 		recorder := newResponseRecorder()
-		recorder.Write([]byte("test"))
+		_, _ = recorder.Write([]byte("test"))
 
 		if recorder.Code != http.StatusOK {
 			t.Errorf("expected default status 200, got %d", recorder.Code)
@@ -222,7 +222,7 @@ func TestResponseRecorder(t *testing.T) {
 
 		recorder.Header().Set("Test", "value")
 		recorder.WriteHeader(http.StatusNotFound)
-		recorder.Write([]byte("error"))
+		_, _ = recorder.Write([]byte("error"))
 
 		recorder.reset()
 
@@ -241,7 +241,7 @@ func TestResponseRecorder(t *testing.T) {
 func BenchmarkRetryMiddleware(b *testing.B) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		_, _ = w.Write([]byte("ok"))
 	})
 
 	middleware := NewRetryMiddleware(handler, DefaultResponseChecker,
@@ -262,7 +262,7 @@ func ExampleMiddleware() {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Simulate occasional failures
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Success"))
+		_, _ = w.Write([]byte("Success"))
 	})
 
 	// Wrap with retry middleware
@@ -281,7 +281,7 @@ func ExampleRetryMiddleware() {
 	// Create a handler that fails sometimes
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "Hello, World!")
+		_, _ = io.WriteString(w, "Hello, World!")
 	})
 
 	// Create retry middleware with custom settings
@@ -301,7 +301,7 @@ func ExampleRetryMiddleware() {
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(resp.Body)
 	println(string(body))
