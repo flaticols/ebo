@@ -4,14 +4,17 @@
 
 Simple, fast exponential backoff retry for Go.
 
+> [!IMPORTANT]
+> EBO is a zero-dependency library that provides flexible retry mechanisms with exponential backoff for building resilient Go applications.
+
 ## Features
 
-- Zero dependencies
-- Fast and lightweight
-- Functional options for flexible configuration
-- Jitter support to prevent thundering herd
-- Timeout and retry limit controls
-- Sensible defaults
+- 🚀 Zero dependencies
+- ⚡ Fast and lightweight
+- 🎯 Functional options for flexible configuration
+- 🌊 Jitter support to prevent thundering herd
+- ⏱️ Timeout and retry limit controls
+- 🧠 Sensible defaults
 
 ## Installation
 
@@ -19,7 +22,7 @@ Simple, fast exponential backoff retry for Go.
 go get github.com/flaticols/ebo
 ```
 
-## Usage
+## Quick Start
 
 ### Simple retry with defaults
 
@@ -59,6 +62,8 @@ err := ebo.Retry(func() error {
     return dbConnect()
 }, ebo.Database())  // Database-optimized settings
 ```
+
+## Usage Examples
 
 ### Time-based retry
 
@@ -102,6 +107,9 @@ err := ebo.RetryWithLogging(func() error {
 
 ### Custom retry conditions
 
+> [!TIP]
+> Define custom retry conditions to control which errors trigger retries and which don't.
+
 ```go
 // Define what errors are retryable
 isRetryable := func(err error) bool {
@@ -126,6 +134,8 @@ err := ebo.RetryWithCondition(func() error {
 )
 ```
 
+## HTTP Integration
+
 ### HTTP client with retry
 
 ```go
@@ -145,7 +155,8 @@ resp, err := ebo.HTTPDo(req, http.DefaultClient, ebo.API())
 
 ### HTTP Middleware
 
-EBO provides HTTP middleware that automatically retries requests based on response codes.
+> [!NOTE]
+> EBO provides HTTP middleware that automatically retries requests based on response codes.
 
 ```go
 // Create a handler
@@ -195,11 +206,13 @@ apiGroup.Use(ebo.Middleware(ebo.DefaultResponseChecker, ebo.Quick()))
 apiGroup.HandleFunc("GET /api/data", dataHandler)
 ```
 
-See [examples/router-integration](examples/router-integration) for complete examples with chi and routegroup.
+> [!TIP]
+> See [examples/router-integration](examples/router-integration) for complete examples with chi and routegroup.
 
 ## Iterator Pattern (Go 1.23+)
 
-EBO now supports the new Go iterator pattern for more flexible and elegant retry loops.
+> [!NOTE]
+> EBO now supports the new Go iterator pattern for more flexible and elegant retry loops.
 
 ### When to Use the Iterator Pattern
 
@@ -379,7 +392,8 @@ for attempt := range ebo.Attempts(ebo.WithMaxRetries(5)) {
 
 ### Simple helper function
 
-If you don't need fine control, use the helper functions:
+> [!TIP]
+> If you don't need fine control, use the helper functions:
 
 ```go
 // Simple usage with DoWithAttempts
@@ -411,6 +425,9 @@ err := ebo.DoWithAttemptsContext(ctx, func(attempt *ebo.Attempt) error {
 - `Exponential(f)` - Exponential backoff with custom factor
 
 ### Presets
+
+> [!TIP]
+> Use presets for common retry scenarios:
 
 - `Quick()` - Fast retries for quick operations
 - `API()` - Optimized for API calls
@@ -452,6 +469,9 @@ RandomizeFactor: 0.5
 
 ### Iterator Functions (Go 1.23+)
 
+> [!IMPORTANT]
+> Iterator functions require Go 1.23 or later.
+
 - `Attempts(opts ...Option) func(func(*Attempt) bool)` - Create a retry iterator
 - `AttemptsWithContext(ctx context.Context, opts ...Option) func(func(*Attempt) bool)` - Context-aware iterator
 - `DoWithAttempts(fn RetryFunc, opts ...Option) error` - Simple iterator-based retry
@@ -466,6 +486,9 @@ RandomizeFactor: 0.5
 - `RetryFunc func(*Attempt) error` - Function signature for iterator-based retries
 
 ## Common Patterns
+
+> [!TIP]
+> Here are some common patterns for using EBO in real-world applications.
 
 ### HTTP Client with Retry
 
@@ -498,6 +521,9 @@ func (c *RetryableClient) Do(req *http.Request) (*http.Response, error) {
 
 ### HTTP Middleware
 
+> [!NOTE]
+> This pattern is useful for adding retry capability to existing HTTP transport layers.
+
 ```go
 func RetryMiddleware(next http.RoundTripper) http.RoundTripper {
     return http.RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
@@ -528,6 +554,9 @@ client := &http.Client{
 ```
 
 ### Database Connections
+
+> [!IMPORTANT]
+> Always use appropriate timeouts when retrying database connections to avoid hanging indefinitely.
 
 ```go
 func ConnectWithRetry(dsn string) (*sql.DB, error) {
@@ -569,6 +598,9 @@ func RetryWithContext(ctx context.Context, fn func() error, opts ...ebo.Option) 
 
 ### Custom Retry Conditions
 
+> [!TIP]
+> Use custom retry conditions to implement domain-specific retry logic.
+
 ```go
 func IsRetryable(err error) bool {
     if err == nil {
@@ -600,8 +632,10 @@ func RetryWithCondition(fn func() error, condition func(error) bool) error {
 
 ## Contributing
 
-Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this project.
+> [!NOTE]
+> We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this project.
 
 ## License
 
-MIT
+> [!IMPORTANT]
+> This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
