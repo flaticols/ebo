@@ -1,14 +1,14 @@
-name: Lint & Tests
+name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [latest]
   pull_request:
-    branches: [main]
+    branches: ['*']
 
 jobs:
-  test:
-    name: Test and Lint
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,12 +16,42 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.23
+          go-version: '1.23'
 
-      - name: golangci-lint
+      - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
           version: v2.1
 
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
       - name: Run tests
         run: go test -v ./...
+
+      - name: Run benchmarks
+        run: go test -bench=. -benchmem ./...
+
+  ci-status:
+    name: CI Status
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    if: always()
+    steps:
+      - name: Check CI Status
+        run: |
+          if [ "${{ needs.lint.result }}" = "success" ] && [ "${{ needs.test.result }}" = "success" ]; then
+            echo "All checks passed!"
+            exit 0
+          else
+            echo "Some checks failed!"
+            exit 1
+          fi
