@@ -1,31 +1,22 @@
-version: 2
+version: "2"
 
 linters:
-  enable:
-    - govet
-    - staticcheck
-    - gosec
+   default: none
+   enable:
+     - bodyclose
+     - dupl
+     - asciicheck
+     - errcheck
+     - errchkjson
+     - errname
+     - errorlint
+     - nilerr
+     - nilnil
+     - staticcheck
 
-linters-settings:
-  gosec:
-    excludes:
-      - G404
-
-issues:
-  exclude-rules:
-    # Exclude from examples  
-    - path: examples/
-      linters:
-        - all
-
-    # Exclude from tests
-    - path: _test\.go
-      linters:
-        - gosec
+formatters:
+  enable: []
 
 run:
-  timeout: 5m
-  tests: true
-  allow-parallel-runners: true
-  skip-dirs:
-    - examples
+    build-tags:
+      - mock
