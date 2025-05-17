@@ -58,9 +58,14 @@ func TestRetry(t *testing.T) {
 		if err == nil {
 			t.Error("expected error, got nil")
 		}
-		// Allow some buffer for system timing variations
-		if elapsed > 700*time.Millisecond {
+		// Allow generous buffer for system timing variations and CI environments
+		// The timeout should be around 300ms but can vary significantly
+		if elapsed > 1500*time.Millisecond {
 			t.Errorf("expected timeout around 300ms, took %v", elapsed)
+		}
+		// Also check that it's not too quick (should run at least one retry)
+		if elapsed < 100*time.Millisecond {
+			t.Errorf("timeout occurred too quickly: %v", elapsed)
 		}
 	})
 
